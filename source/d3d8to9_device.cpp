@@ -222,10 +222,17 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::Reset(D3DPRESENT_PARAMETERS8 *pPresen
 		}
 	}
 
-	D3DDISPLAYMODEEX DisplayMode;
-	ProxyInterface->GetDisplayModeEx(0, &DisplayMode, NULL);
+	D3DDISPLAYMODEEX DisplayMode = {
+		sizeof(D3DDISPLAYMODEEX),
+		PresentParams.BackBufferWidth,
+		PresentParams.BackBufferHeight,
+		PresentParams.FullScreen_RefreshRateInHz,
+		PresentParams.BackBufferFormat,
+		D3DSCANLINEORDERING_PROGRESSIVE
+	};
+	D3DDISPLAYMODEEX* pDisplayMode = PresentParams.Windowed ? nullptr : &DisplayMode;
 
-	return ProxyInterface->ResetEx(&PresentParams, &DisplayMode);
+	return ProxyInterface->ResetEx(&PresentParams, pDisplayMode);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::Present(const RECT *pSourceRect, const RECT *pDestRect, HWND hDestWindowOverride, const RGNDATA *pDirtyRegion)
 {
