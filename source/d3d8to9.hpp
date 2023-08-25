@@ -16,10 +16,10 @@ class Direct3D8 : public IDirect3D8
 	Direct3D8 &operator=(const Direct3D8 &) = delete;
 
 public:
-	Direct3D8(IDirect3D9 *ProxyInterface);
+	Direct3D8(IDirect3D9Ex *ProxyInterface);
 	~Direct3D8();
 
-	IDirect3D9 *GetProxyInterface() const { return ProxyInterface; }
+	IDirect3D9Ex *GetProxyInterface() const { return ProxyInterface; }
 
 	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObj) override;
 	virtual ULONG STDMETHODCALLTYPE AddRef() override;
@@ -40,11 +40,11 @@ public:
 	virtual HRESULT STDMETHODCALLTYPE CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType, HWND hFocusWindow, DWORD BehaviorFlags, D3DPRESENT_PARAMETERS8 *pPresentationParameters, IDirect3DDevice8 **ppReturnedDeviceInterface) override;
 
 private:
-	IDirect3D9 *const ProxyInterface;
+	IDirect3D9Ex *const ProxyInterface;
 	static const UINT MaxAdapters = 8;
 	UINT CurrentAdapterCount = 0;
 	UINT CurrentAdapterModeCount[MaxAdapters] = { 0 };
-	std::vector<D3DDISPLAYMODE> CurrentAdapterModes[MaxAdapters];
+	std::vector<D3DDISPLAYMODEEX> CurrentAdapterModes[MaxAdapters];
 };
 
 class Direct3DDevice8 : public IDirect3DDevice8
@@ -53,10 +53,10 @@ class Direct3DDevice8 : public IDirect3DDevice8
 	Direct3DDevice8 &operator=(const Direct3DDevice8 &) = delete;
 
 public:
-	Direct3DDevice8(Direct3D8 *d3d, IDirect3DDevice9 *ProxyInterface, BOOL EnableZBufferDiscarding = FALSE);
+	Direct3DDevice8(Direct3D8 *d3d, IDirect3DDevice9Ex *ProxyInterface, BOOL EnableZBufferDiscarding = FALSE);
 	~Direct3DDevice8();
 
-	IDirect3DDevice9 *GetProxyInterface() const { return ProxyInterface; }
+	IDirect3DDevice9Ex *GetProxyInterface() const { return ProxyInterface; }
 
 	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObj) override;
 	virtual ULONG STDMETHODCALLTYPE AddRef() override;
@@ -164,7 +164,7 @@ private:
 	void ReleaseShaders();
 
 	Direct3D8 *const D3D;
-	IDirect3DDevice9 *const ProxyInterface;
+	IDirect3DDevice9Ex *const ProxyInterface;
 	INT CurrentBaseVertexIndex = 0;
 	const BOOL ZBufferDiscarding = FALSE;
 	DWORD CurrentVertexShaderHandle = 0, CurrentPixelShaderHandle = 0;
@@ -186,10 +186,10 @@ class Direct3DSwapChain8 : public IDirect3DSwapChain8, public AddressLookupTable
 	Direct3DSwapChain8 &operator=(const Direct3DSwapChain8 &) = delete;
 
 public:
-	Direct3DSwapChain8(Direct3DDevice8 *device, IDirect3DSwapChain9 *ProxyInterface);
+	Direct3DSwapChain8(Direct3DDevice8 *device, IDirect3DSwapChain9Ex *ProxyInterface);
 	~Direct3DSwapChain8();
 
-	IDirect3DSwapChain9 *GetProxyInterface() const { return ProxyInterface; }
+	IDirect3DSwapChain9Ex *GetProxyInterface() const { return ProxyInterface; }
 
 	virtual HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObj) override;
 	virtual ULONG STDMETHODCALLTYPE AddRef() override;
@@ -200,7 +200,7 @@ public:
 
 private:
 	Direct3DDevice8 *const Device;
-	IDirect3DSwapChain9 *const ProxyInterface;
+	IDirect3DSwapChain9Ex *const ProxyInterface;
 };
 
 class Direct3DTexture8 : public IDirect3DTexture8, public AddressLookupTableObject

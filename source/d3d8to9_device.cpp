@@ -14,7 +14,7 @@ struct VertexShaderInfo
 	IDirect3DVertexDeclaration9 *Declaration;
 };
 
-Direct3DDevice8::Direct3DDevice8(Direct3D8 *d3d, IDirect3DDevice9 *ProxyInterface, BOOL EnableZBufferDiscarding) :
+Direct3DDevice8::Direct3DDevice8(Direct3D8 *d3d, IDirect3DDevice9Ex *ProxyInterface, BOOL EnableZBufferDiscarding) :
 	D3D(d3d), ProxyInterface(ProxyInterface), ZBufferDiscarding(EnableZBufferDiscarding)
 {
 	ProxyAddressLookupTable = new AddressLookupTable(this);
@@ -111,7 +111,19 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetDeviceCaps(D3DCAPS8 *pCaps)
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetDisplayMode(D3DDISPLAYMODE *pMode)
 {
-	return ProxyInterface->GetDisplayMode(0, pMode);
+	if (pMode == nullptr)
+		return D3DERR_INVALIDCALL;
+
+	D3DDISPLAYMODEEX DisplayMode;
+	DisplayMode.Size = sizeof(D3DDISPLAYMODEEX);
+
+	const HRESULT hr = ProxyInterface->GetDisplayModeEx(0, &DisplayMode, NULL);
+	if (FAILED(hr))
+		return hr;
+
+	ConvertDisplayMode(DisplayMode, *pMode);
+
+	return D3D_OK;
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetCreationParameters(D3DDEVICE_CREATION_PARAMETERS *pParameters)
 {
@@ -166,12 +178,15 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateAdditionalSwapChain(D3DPRESENT_
 	}
 
 	IDirect3DSwapChain9 *SwapChainInterface = nullptr;
+	IDirect3DSwapChain9Ex *SwapChainInterfaceEx = nullptr;
 
 	const HRESULT hr = ProxyInterface->CreateAdditionalSwapChain(&PresentParams, &SwapChainInterface);
 	if (FAILED(hr))
 		return hr;
 
-	*ppSwapChain = new Direct3DSwapChain8(this, SwapChainInterface);
+	SwapChainInterface->QueryInterface(IID_IDirect3DSwapChain9Ex, reinterpret_cast<void**>(&SwapChainInterfaceEx));
+
+	*ppSwapChain = new Direct3DSwapChain8(this, SwapChainInterfaceEx);
 
 	return D3D_OK;
 }
@@ -207,13 +222,16 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::Reset(D3DPRESENT_PARAMETERS8 *pPresen
 		}
 	}
 
-	return ProxyInterface->Reset(&PresentParams);
+	D3DDISPLAYMODEEX DisplayMode;
+	ProxyInterface->GetDisplayModeEx(0, &DisplayMode, NULL);
+
+	return ProxyInterface->ResetEx(&PresentParams, &DisplayMode);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::Present(const RECT *pSourceRect, const RECT *pDestRect, HWND hDestWindowOverride, const RGNDATA *pDirtyRegion)
 {
 	UNREFERENCED_PARAMETER(pDirtyRegion);
 
-	return ProxyInterface->Present(pSourceRect, pDestRect, hDestWindowOverride, nullptr);
+	return ProxyInterface->PresentEx(pSourceRect, pDestRect, hDestWindowOverride, nullptr, 0);
 }
 HRESULT STDMETHODCALLTYPE Direct3DDevice8::GetBackBuffer(UINT iBackBuffer, D3DBACKBUFFER_TYPE Type, IDirect3DSurface8 **ppBackBuffer)
 {
@@ -267,6 +285,11 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateTexture(UINT Width, UINT Height
 		}
 	}
 
+	if (Pool == D3DPOOL_MANAGED) {
+		Pool = D3DPOOL_DEFAULT;
+		Usage |= D3DUSAGE_DYNAMIC;
+	}
+
 	IDirect3DTexture9 *TextureInterface = nullptr;
 
 	const HRESULT hr = ProxyInterface->CreateTexture(Width, Height, Levels, Usage, Format, Pool, &TextureInterface, nullptr);
@@ -283,6 +306,11 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVolumeTexture(UINT Width, UINT 
 		return D3DERR_INVALIDCALL;
 
 	*ppVolumeTexture = nullptr;
+
+	if (Pool == D3DPOOL_MANAGED) {
+		Pool = D3DPOOL_DEFAULT;
+		Usage |= D3DUSAGE_DYNAMIC;
+	}
 
 	IDirect3DVolumeTexture9 *TextureInterface = nullptr;
 
@@ -301,6 +329,11 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateCubeTexture(UINT EdgeLength, UI
 
 	*ppCubeTexture = nullptr;
 
+	if (Pool == D3DPOOL_MANAGED) {
+		Pool = D3DPOOL_DEFAULT;
+		Usage |= D3DUSAGE_DYNAMIC;
+	}
+
 	IDirect3DCubeTexture9 *TextureInterface = nullptr;
 
 	const HRESULT hr = ProxyInterface->CreateCubeTexture(EdgeLength, Levels, Usage, Format, Pool, &TextureInterface, nullptr);
@@ -318,6 +351,11 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateVertexBuffer(UINT Length, DWORD
 
 	*ppVertexBuffer = nullptr;
 
+	if (Pool == D3DPOOL_MANAGED) {
+		Pool = D3DPOOL_DEFAULT;
+		Usage |= D3DUSAGE_DYNAMIC;
+	}
+
 	IDirect3DVertexBuffer9 *BufferInterface = nullptr;
 
 	const HRESULT hr = ProxyInterface->CreateVertexBuffer(Length, Usage, FVF, Pool, &BufferInterface, nullptr);
@@ -334,6 +372,11 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateIndexBuffer(UINT Length, DWORD 
 		return D3DERR_INVALIDCALL;
 
 	*ppIndexBuffer = nullptr;
+
+	if (Pool == D3DPOOL_MANAGED) {
+		Pool = D3DPOOL_DEFAULT;
+		Usage |= D3DUSAGE_DYNAMIC;
+	}
 
 	IDirect3DIndexBuffer9 *BufferInterface = nullptr;
 
@@ -366,7 +409,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateRenderTarget(UINT Width, UINT H
 
 	IDirect3DSurface9 *SurfaceInterface = nullptr;
 
-	const HRESULT hr = ProxyInterface->CreateRenderTarget(Width, Height, Format, MultiSample, QualityLevels, Lockable, &SurfaceInterface, nullptr);
+	const HRESULT hr = ProxyInterface->CreateRenderTargetEx(Width, Height, Format, MultiSample, QualityLevels, Lockable, &SurfaceInterface, nullptr, 0);
 	if (FAILED(hr))
 		return hr;
 
@@ -395,7 +438,7 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateDepthStencilSurface(UINT Width,
 
 	IDirect3DSurface9 *SurfaceInterface = nullptr;
 
-	const HRESULT hr = ProxyInterface->CreateDepthStencilSurface(Width, Height, Format, MultiSample, QualityLevels, ZBufferDiscarding, &SurfaceInterface, nullptr);
+	const HRESULT hr = ProxyInterface->CreateDepthStencilSurfaceEx(Width, Height, Format, MultiSample, QualityLevels, ZBufferDiscarding, &SurfaceInterface, nullptr, 0);
 	if (FAILED(hr))
 		return hr;
 
@@ -424,9 +467,9 @@ HRESULT STDMETHODCALLTYPE Direct3DDevice8::CreateImageSurface(UINT Width, UINT H
 
 	IDirect3DSurface9 *SurfaceInterface = nullptr;
 
-	const HRESULT hr = ProxyInterface->CreateOffscreenPlainSurface(Width, Height, Format, D3DPOOL_SYSTEMMEM, &SurfaceInterface, nullptr);
+	const HRESULT hr = ProxyInterface->CreateOffscreenPlainSurfaceEx(Width, Height, Format, D3DPOOL_SYSTEMMEM, &SurfaceInterface, nullptr, 0);
 
-	if (FAILED(hr) && FAILED(ProxyInterface->CreateOffscreenPlainSurface(Width, Height, Format, D3DPOOL_SCRATCH, &SurfaceInterface, nullptr)))
+	if (FAILED(hr) && FAILED(ProxyInterface->CreateOffscreenPlainSurfaceEx(Width, Height, Format, D3DPOOL_SCRATCH, &SurfaceInterface, nullptr, 0)))
 	{
 #ifndef D3D8TO9NOLOG
 		LOG << "> 'IDirect3DDevice9::CreateOffscreenPlainSurface' failed with error code " << std::hex << hr << std::dec << "!" << std::endl;

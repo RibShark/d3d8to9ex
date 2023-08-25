@@ -5,7 +5,7 @@
 
 #include "d3d8to9.hpp"
 
-Direct3DSwapChain8::Direct3DSwapChain8(Direct3DDevice8 *Device, IDirect3DSwapChain9 *ProxyInterface) :
+Direct3DSwapChain8::Direct3DSwapChain8(Direct3DDevice8 *Device, IDirect3DSwapChain9Ex *ProxyInterface) :
 	Device(Device), ProxyInterface(ProxyInterface)
 {
 	Device->ProxyAddressLookupTable->SaveAddress(this, ProxyInterface);

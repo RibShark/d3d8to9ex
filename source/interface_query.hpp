@@ -95,7 +95,7 @@ struct AddressLookupTable::AddressCacheIndex<Direct3DIndexBuffer8>
 { static constexpr UINT CacheIndex = 6; using Type9 = IDirect3DIndexBuffer9; };
 template <>
 struct AddressLookupTable::AddressCacheIndex<Direct3DSwapChain8>
-{ static constexpr UINT CacheIndex = 7; using Type9 = IDirect3DSwapChain9; };
+{ static constexpr UINT CacheIndex = 7; using Type9 = IDirect3DSwapChain9Ex; };
 
 class AddressLookupTableObject
 {

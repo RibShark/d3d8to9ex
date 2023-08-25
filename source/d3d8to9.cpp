@@ -32,10 +32,11 @@ extern "C" IDirect3D8 *WINAPI Direct3DCreate8(UINT SDKVersion)
 	}
 
 	LOG << "Redirecting '" << "Direct3DCreate8" << "(" << SDKVersion << ")' ..." << std::endl;
-	LOG << "> Passing on to 'Direct3DCreate9':" << std::endl;
+	LOG << "> Passing on to 'Direct3DCreate9Ex':" << std::endl;
 #endif
 
-	IDirect3D9 *const d3d = Direct3DCreate9(D3D_SDK_VERSION);
+	IDirect3D9Ex* d3d = nullptr;
+	Direct3DCreate9Ex(D3D_SDK_VERSION, &d3d);
 
 	if (d3d == nullptr)
 	{

@@ -5,18 +5,19 @@
 
 #include "d3d8to9.hpp"
 
-static const D3DFORMAT AdapterFormats[] = {
-	D3DFMT_A8R8G8B8,
-	D3DFMT_X8R8G8B8,
-	D3DFMT_R5G6B5,
-	D3DFMT_X1R5G5B5,
-	D3DFMT_A1R5G5B5
+static const D3DDISPLAYMODEFILTER DisplayModeFilters[] = {
+	{ sizeof(D3DDISPLAYMODEFILTER), D3DFMT_A8R8G8B8,   D3DSCANLINEORDERING_PROGRESSIVE },
+	{ sizeof(D3DDISPLAYMODEFILTER), D3DFMT_X8R8G8B8,   D3DSCANLINEORDERING_PROGRESSIVE },
+	{ sizeof(D3DDISPLAYMODEFILTER), D3DFMT_R5G6B5,     D3DSCANLINEORDERING_PROGRESSIVE },
+	{ sizeof(D3DDISPLAYMODEFILTER), D3DFMT_X1R5G5B5,   D3DSCANLINEORDERING_PROGRESSIVE },
+	{ sizeof(D3DDISPLAYMODEFILTER), D3DFMT_A1R5G5B5,   D3DSCANLINEORDERING_PROGRESSIVE }
 };
 
-Direct3D8::Direct3D8(IDirect3D9 *ProxyInterface) :
+Direct3D8::Direct3D8(IDirect3D9Ex *ProxyInterface) :
 	ProxyInterface(ProxyInterface)
 {
-	D3DDISPLAYMODE pMode;
+	D3DDISPLAYMODEEX pMode;
+	pMode.Size = sizeof(D3DDISPLAYMODEEX);
 
 	CurrentAdapterCount = ProxyInterface->GetAdapterCount();
 	if (CurrentAdapterCount > MaxAdapters)
@@ -24,13 +25,13 @@ Direct3D8::Direct3D8(IDirect3D9 *ProxyInterface) :
 
 	for (UINT Adapter = 0; Adapter < CurrentAdapterCount; Adapter++)
 	{
-		for (D3DFORMAT Format : AdapterFormats)
+		for (D3DDISPLAYMODEFILTER Filter : DisplayModeFilters)
 		{
-			const UINT ModeCount = ProxyInterface->GetAdapterModeCount(Adapter, Format);
+			const UINT ModeCount = ProxyInterface->GetAdapterModeCountEx(Adapter, &Filter);
 
 			for (UINT Mode = 0; Mode < ModeCount; Mode++)
 			{
-				ProxyInterface->EnumAdapterModes(Adapter, Format, Mode, &pMode);
+				ProxyInterface->EnumAdapterModesEx(Adapter, &Filter, Mode, &pMode);
 				CurrentAdapterModes[Adapter].push_back(pMode);
 				CurrentAdapterModeCount[Adapter]++;
 			}
@@ -121,7 +122,18 @@ HRESULT STDMETHODCALLTYPE Direct3D8::EnumAdapterModes(UINT Adapter, UINT Mode, D
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::GetAdapterDisplayMode(UINT Adapter, D3DDISPLAYMODE *pMode)
 {
-	return ProxyInterface->GetAdapterDisplayMode(Adapter, pMode);
+	if (pMode == nullptr)
+		return D3DERR_INVALIDCALL;
+
+	D3DDISPLAYMODEEX DisplayMode;
+	DisplayMode.Size = sizeof(D3DDISPLAYMODEEX);
+
+	const HRESULT hr = ProxyInterface->GetAdapterDisplayModeEx(Adapter, &DisplayMode, NULL);
+	if (FAILED(hr))
+		return hr;
+
+	ConvertDisplayMode(DisplayMode, *pMode);
+	return D3D_OK;
 }
 HRESULT STDMETHODCALLTYPE Direct3D8::CheckDeviceType(UINT Adapter, D3DDEVTYPE CheckType, D3DFORMAT DisplayFormat, D3DFORMAT BackBufferFormat, BOOL bWindowed)
 {
@@ -195,9 +207,18 @@ HRESULT STDMETHODCALLTYPE Direct3D8::CreateDevice(UINT Adapter, D3DDEVTYPE Devic
 		}
 	}
 
-	IDirect3DDevice9 *DeviceInterface = nullptr;
+	IDirect3DDevice9Ex *DeviceInterface = nullptr;
+	D3DDISPLAYMODEEX DisplayMode = {
+		sizeof(D3DDISPLAYMODEEX),
+		PresentParams.BackBufferWidth,
+		PresentParams.BackBufferHeight,
+		PresentParams.FullScreen_RefreshRateInHz,
+		PresentParams.BackBufferFormat,
+		D3DSCANLINEORDERING_PROGRESSIVE
+	};
+	D3DDISPLAYMODEEX* pDisplayMode = PresentParams.Windowed ? nullptr : &DisplayMode;
 
-	const HRESULT hr = ProxyInterface->CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &PresentParams, &DeviceInterface);
+	const HRESULT hr = ProxyInterface->CreateDeviceEx(Adapter, DeviceType, hFocusWindow, BehaviorFlags, &PresentParams, pDisplayMode, &DeviceInterface);
 	if (FAILED(hr))
 		return hr;
 

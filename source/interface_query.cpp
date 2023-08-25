@@ -55,9 +55,9 @@ void GenericQueryInterface(REFIID riid, LPVOID *ppvObj, Direct3DDevice8 *pDevice
 REFIID ConvertREFIID(REFIID riid)
 {
 	if (riid == __uuidof(IDirect3D8))
-		return IID_IDirect3D9;
+		return IID_IDirect3D9Ex;
 	if (riid == __uuidof(IDirect3DDevice8))
-		return IID_IDirect3DDevice9;
+		return IID_IDirect3DDevice9Ex;
 	if (riid == __uuidof(IDirect3DTexture8))
 		return IID_IDirect3DTexture9;
 	if (riid == __uuidof(IDirect3DCubeTexture8))
@@ -73,6 +73,6 @@ REFIID ConvertREFIID(REFIID riid)
 	if (riid == __uuidof(IDirect3DVolume8))
 		return IID_IDirect3DVolume9;
 	if (riid == __uuidof(IDirect3DSwapChain8))
-		return IID_IDirect3DSwapChain9;
+		return IID_IDirect3DSwapChain9Ex;
 	return riid;
 }

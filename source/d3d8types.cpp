@@ -115,6 +115,14 @@ void ConvertSurfaceDesc(D3DSURFACE_DESC &Input, D3DSURFACE_DESC8 &Output)
 	Output.Height = Input.Height;
 }
 
+void ConvertDisplayMode(D3DDISPLAYMODEEX &Input, D3DDISPLAYMODE &Output)
+{
+	Output.Width = Input.Width;
+	Output.Height = Input.Height;
+	Output.RefreshRate = Input.RefreshRate;
+	Output.Format = Input.Format;
+}
+
 void ConvertPresentParameters(D3DPRESENT_PARAMETERS8 &Input, D3DPRESENT_PARAMETERS &Output)
 {
 	Output.BackBufferWidth = Input.BackBufferWidth;
