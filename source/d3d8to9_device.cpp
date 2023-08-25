@@ -2225,11 +2225,13 @@ void Direct3DDevice8::ReleaseShaders()
 	for (auto Handle : PixelShaderHandles)
 	{
 		DeletePixelShader(Handle);
+		if (PixelShaderHandles.empty()) break;
 	}
 	PixelShaderHandles.clear();
 	for (auto Handle : VertexShaderHandles)
 	{
 		DeleteVertexShader(Handle);
+		if (VertexShaderHandles.empty()) break;
 	}
 	VertexShaderHandles.clear();
 	VertexShaderAndDeclarationCount = 0;
