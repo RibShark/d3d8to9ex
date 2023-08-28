@@ -447,3 +447,5 @@ private:
 #ifndef D3D8TO9NOLOG
 extern std::ofstream LOG;
 #endif
+
+IDirect3D8 *WINAPI Direct3DCreate8to9ex(UINT SDKVersion);

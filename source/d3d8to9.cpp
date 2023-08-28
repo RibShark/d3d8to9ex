@@ -73,3 +73,8 @@ extern "C" IDirect3D8 *WINAPI Direct3DCreate8(UINT SDKVersion)
 
 	return new Direct3D8(d3d);
 }
+
+IDirect3D8 *WINAPI Direct3DCreate8to9ex(UINT SDKVersion)
+{
+    return Direct3DCreate8(SDKVersion);
+}
